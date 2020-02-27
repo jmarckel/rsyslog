@@ -323,6 +323,7 @@ BEGINnewActInst
 	char *cstr;
 	char *varName = NULL;
 	char *buffer;
+	size_t buffer_size, buffer_len, n;
 	char *tStr;
 	int size = 0;
 CODESTARTnewActInst
@@ -351,23 +352,40 @@ CODESTARTnewActInst
 		if(!strcmp(actpblk.descr[i].name, "rulebase")) {
 			pData->rulebase = (uchar*)es_str2cstr(pvals[i].val.d.estr, NULL);
 		} else if(!strcmp(actpblk.descr[i].name, "rule")) {
-			for(int j=0; j < pvals[i].val.d.ar->nmemb; ++j) {
+			buffer_size = 64;
+			buffer = malloc(buffer_size);
+#if 0
+			if(!buffer) {
+				/* ??? */
+			}
+#endif
+			buffer_len = 0;
+			*buffer = '\0';
+			for(int j=0; j < pvals[i].val.d.ar->nmemb; j++) {
 				tStr = (char*)es_str2cstr(pvals[i].val.d.ar->arr[j], NULL);
-				size += strlen(tStr);
+				size = strlen(tStr);
+				if(buffer_len + size + 2 >= buffer_size) {
+					do {
+						buffer_size *= 2;
+						buffer = realloc(buffer, buffer_size);
+#if 0
+						if(!buffer) {
+							/* ??? */
+						}
+#endif
+					} while(buffer_len + size + 2 >= buffer_size);
+				}
+				n = snprintf(buffer + buffer_len, buffer_size - buffer_len,
+						"%s\n", tStr);
+				buffer_len += n;
 				free(tStr);
 			}
-			buffer = malloc(size + pvals[i].val.d.ar->nmemb + 1);
-			tStr = (char*)es_str2cstr(pvals[i].val.d.ar->arr[0], NULL);
-			strcpy(buffer, tStr);
-			free(tStr);
-			strcat(buffer, "\n");
-			for(int j=1; j < pvals[i].val.d.ar->nmemb; ++j) {
-				tStr = (char*)es_str2cstr(pvals[i].val.d.ar->arr[j], NULL);
-				strcat(buffer, tStr);
-				free(tStr);
-				strcat(buffer, "\n");
+			buffer = realloc(buffer, buffer_len + 1);
+#if 0
+			if(!buffer) {
+				/* ??? */
 			}
-			strcat(buffer, "\0");
+#endif
 			pData->rule = (uchar*)buffer;
 		} else if(!strcmp(actpblk.descr[i].name, "userawmsg")) {
 			pData->bUseRawMsg = (int) pvals[i].val.d.n;
